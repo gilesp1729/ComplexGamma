@@ -1,2 +1,9 @@
+typedef struct CoordSet
+{
+    double coord[3];        // XYZ of coord
+    int    color;           // Color or other metadata
+} CoordSet;
+
 void init_visualiser(const char * title, int wWidth, int wHeight);
-void display_visualiser(void);
+void display_visualiser(int how, int n, struct CoordSet* coords);
+

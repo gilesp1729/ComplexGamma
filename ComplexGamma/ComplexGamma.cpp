@@ -10,6 +10,7 @@ extern "C"
 using namespace std;
 
 static double pi = 3.14159265359; 
+int how_calcd;
 
 // Approximation to gamma function 
 // (not sure whose this is, maybe Lanczos? nor how accurate it is)
@@ -86,23 +87,42 @@ complex<double> alternating_zeta(complex<double> s)
 // Riemann zeta function using functional equation to compute zeta for real(s) <= 0.0.
 // Note: blows up for s = 0 (since it tries to calculate series_zeta(1.0) )
 // For 0.0 < real(s) <= 1.0, we use the alternating zeta function.
+// Auxiliary output: how_calcd = 0 series, 1 alternating, 2 functional eq.
 complex<double> riemann_zeta(complex<double> s)
 {
+    complex<double> s1;
+
     if (real(s) > 1.0)
+    {
+        how_calcd = 0;
         return series_zeta(s);
+    }
 
     if (real(s) > 0.0)
+    {
+        how_calcd = 1;
         return alternating_zeta(s);
+    }
     
    // cout << "Functional equation zeta(" << s << ")" << endl;
-    return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(s) * riemann_zeta(1.0 - s);
+    s1 = riemann_zeta(1.0 - s);
+    how_calcd = 2;
+    return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(s) * s1;
 }
 
 
 
 int main()
 {
-    complex<double> arg(0.999, 0);
+    //complex<double> arg(0.999, 0);
+    int w = 100;
+    int h = 100;
+    double step = 0.1;
+    double imin = -5.0;
+    double rmin = -5.0;
+    int m, n;
+    double i, r;
+    CoordSet* coords;
 
     //cout << arg << endl;
     //cout << "Gamma: " << cgamma(arg) << endl;
@@ -110,21 +130,30 @@ int main()
     //cout << "Result: " << riemann_zeta(arg) << endl;
     //return 0;
 
+    coords = (CoordSet *)malloc(w * h * sizeof(CoordSet));
+
+
     init_visualiser("Visualiser", 800, 800);
 
-
-    for (double r = -5.0; r < 5.0; r += 0.1)
+    // Accumulate points. 
+    for (i = imin, n = 0; n < h; i += step, n++)
     {
-        for (double i = -5.0; i < 5.0; i += 0.1)
+        for (r = rmin, m = 0; m < w; r += step, m++)
         {
             complex<double> s(r, i);
-            complex<double> zeta = riemann_zeta(s);
+            complex<double> z = riemann_zeta(s);
+            int indx = n * w + m;
 
-           // cout << "Zeta of " << s << " = " << zeta << endl;
+            coords[indx].coord[0] = real(s);
+            coords[indx].coord[1] = imag(s);
+            coords[indx].coord[2] = abs(z);
+            coords[indx].color = how_calcd;
+
+            // cout << "Zeta of " << s << " = " << zeta << endl;
         }
     }
 
 
-    display_visualiser();
+    display_visualiser(0, w * h, coords);
 }
 

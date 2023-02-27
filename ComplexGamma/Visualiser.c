@@ -3,6 +3,7 @@
 #include <GL/glu.h>
 #include "glaux/glaux.h"
 #include "Trackbal.h"
+#include "visualiser.h"
 
 // Basic 3D visualiser. Takes all the GL gubbins out of the calling program.
 
@@ -17,6 +18,11 @@ float yTrans = 0;
 float zTrans = -2.0f * INITIAL_HALFSIZE;
 int zoom_delta = 0;
 float half_size = INITIAL_HALFSIZE;
+
+// Stuff to be displayed
+int coord_count = 0;
+CoordSet *coord_data;
+int coord_how_displayed = 0;
 
 
 void
@@ -179,10 +185,8 @@ void _stdcall Draw(void)
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
 
-    // handle picking, or just position for viewing
     Position();
 
-    // draw contents
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     trackball_CalcRotMatrix(matRot);
@@ -205,13 +209,26 @@ void _stdcall Draw(void)
     glVertex3d(0.0, 0.0, axis);
     glEnd();
 
-
-
-
-
     // Draw 3D content
-
-
+    glBegin(GL_POINTS);
+    for (int i = 0; i < coord_count; i++)
+    {
+        switch (coord_data[i].color)
+        {
+        case 0:
+        default:
+            glColor3d(1.0, 0.0, 0.0);
+            break;
+        case 1:
+            glColor3d(0.0, 1.0, 0.0);
+            break;
+        case 2:
+            glColor3d(0.0, 0.0, 1.0);
+            break;
+        }
+        glVertex3dv(coord_data[i].coord);
+    }
+    glEnd();
 
 
     glFlush();
@@ -219,8 +236,16 @@ void _stdcall Draw(void)
 }
 
 
-void display_visualiser(void)
+void display_visualiser(int how, int n, CoordSet *coords)
 {
+    // Store away the coords for visualisation.
+    // coords = a [n = w*h] array of coordinate triplets.
+    // how = 0 points, =1 triangles, and so on (TBD)
+    coord_count = n;
+    coord_data = coords;
+    coord_how_displayed = how;
+
+    // Display the data and handle navigation (note: never returns until window destroyed)
     auxIdleFunc(Draw);
     auxMainLoop(Draw);
 }
