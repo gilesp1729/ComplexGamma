@@ -20,7 +20,8 @@ int zoom_delta = 0;
 float half_size = INITIAL_HALFSIZE;
 
 // Stuff to be displayed
-int coord_count = 0;
+int coord_w = 0;
+int coord_h = 0;
 CoordSet *coord_data;
 int coord_how_displayed = 0;
 
@@ -210,38 +211,62 @@ void _stdcall Draw(void)
     glEnd();
 
     // Draw 3D content
-    glBegin(GL_POINTS);
-    for (int i = 0; i < coord_count; i++)
+    switch (coord_how_displayed)
     {
-        switch (coord_data[i].color)
+    case 0: //as points
+    default:
+        glBegin(GL_POINTS);
+        for (int i = 0; i < coord_w * coord_h; i++)
         {
-        case 0:
-        default:
-            glColor3d(1.0, 0.0, 0.0);
-            break;
-        case 1:
-            glColor3d(0.0, 1.0, 0.0);
-            break;
-        case 2:
-            glColor3d(0.0, 0.0, 1.0);
-            break;
+            switch (coord_data[i].color)
+            {
+            case 0:
+            default:
+                glColor3d(1.0, 0.0, 0.0);
+                break;
+            case 1:
+                glColor3d(0.0, 1.0, 0.0);
+                break;
+            case 2:
+                glColor3d(0.0, 0.0, 1.0);
+                break;
+            }
+            glVertex3dv(coord_data[i].coord);
         }
-        glVertex3dv(coord_data[i].coord);
-    }
-    glEnd();
+        glEnd();
+        break;
 
+    case 1: // as triangles
+        glBegin(GL_TRIANGLE_STRIP);
+        glColor3d(1.0, 0.0, 0.0);
+        coord_h = 10; // TEMP
+        for (int j = 0; j < coord_h - 1; j++)
+        {
+            for (int i = 0; i < coord_w; i++)
+            {
+                int indx = j * coord_w + i;
+
+                glVertex3dv(coord_data[indx].coord);
+                glVertex3dv(coord_data[indx + coord_w].coord);
+            }
+        }
+
+        glEnd();
+        break;
+    }
 
     glFlush();
     auxSwapBuffers();
 }
 
 
-void display_visualiser(int how, int n, CoordSet *coords)
+void display_visualiser(int how, int w, int h, CoordSet *coords)
 {
     // Store away the coords for visualisation.
-    // coords = a [n = w*h] array of coordinate triplets.
+    // coords = a [w*h] array of coordinate triplets.
     // how = 0 points, =1 triangles, and so on (TBD)
-    coord_count = n;
+    coord_w = w;
+    coord_h = h;
     coord_data = coords;
     coord_how_displayed = how;
 

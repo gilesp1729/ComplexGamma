@@ -5,5 +5,5 @@ typedef struct CoordSet
 } CoordSet;
 
 void init_visualiser(const char * title, int wWidth, int wHeight);
-void display_visualiser(int how, int n, struct CoordSet* coords);
+void display_visualiser(int how, int w, int h, struct CoordSet* coords);
 

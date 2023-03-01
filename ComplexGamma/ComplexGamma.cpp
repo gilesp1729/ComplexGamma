@@ -154,6 +154,6 @@ int main()
     }
 
 
-    display_visualiser(0, w * h, coords);
+    display_visualiser(1, w, h, coords);
 }
 
