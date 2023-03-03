@@ -42,7 +42,7 @@ complex<double> cgamma(complex<double> z)
 // From here on it's all Wikipedia on the Riemann zeta function...
  
 // Series zeta function. Not valid for real(s) < 1.0 or s = 1.0.
-complex<double> series_zeta(complex<double> s)
+complex<double> series_zeta(complex<double> s, int *result)
 {
     complex<double> zeta(0, 0);
 
@@ -56,57 +56,55 @@ complex<double> series_zeta(complex<double> s)
         if (abs(term) < 1.0e-7 * abs(zeta))
         {
            // cout << "Converged in " << i << " iterations" << endl;
-            break;
+            *result = 1;
+            return zeta;
         }
     }
+    *result = 0;
     return zeta;
 }
 
-// Alternating sign zeta function for zeta of 0.0 < real(s) < 1.0
-complex<double> alternating_zeta(complex<double> s)
+
+// Dirichlet zeta function. Supposed to converge for real(s) > 0.
+complex<double> dirichlet_zeta(complex<double> s, int* result)
 {
     complex<double> zeta(0, 0);
 
-   // cout << "Alternating zeta(" << s << ")" << endl;
+    // cout << "Dirichlet zeta(" << s << ")" << endl;
     for (int i = 1; i < 100; i++)  // limit of 100 terms, arbitrarily
     {
-        complex<double> term = ((i & 1) ? 1.0 : -1.0) / pow((double)i, s);
+        double di = (double)i;
+        complex<double> term = (di / pow(di + 1, s)) - ((di - s) / pow(di, s));
 
         // cout << i << term << endl;
         zeta += term;
         if (abs(term) < 1.0e-7 * abs(zeta))
         {
-           // cout << "Converged in " << i << " iterations" << endl;
-            break;
+            // cout << "Converged in " << i << " iterations" << endl;
+            *result = 1;
+            return zeta / (s - 1.0);
         }
     }
-    return zeta * (1.0 / (1.0 - pow(2.0, 1.0 - s)));
+    *result = 0;
+    return zeta / (s - 1.0);
 }
 
 
 // Riemann zeta function using functional equation to compute zeta for real(s) <= 0.0.
 // Note: blows up for s = 0 (since it tries to calculate series_zeta(1.0) )
-// For 0.0 < real(s) <= 1.0, we use the alternating zeta function.
-// Auxiliary output: how_calcd = 0 series, 1 alternating, 2 functional eq.
-complex<double> riemann_zeta(complex<double> s)
+// For 0.0 < real(s) <= 1.0, we use the Dirichlet zeta function.
+// Result output: 1 if converged, 0 otherwise.
+complex<double> riemann_zeta(complex<double> s, int *result)
 {
     complex<double> s1;
 
-    if (real(s) > 1.0)
-    {
-        how_calcd = 0;
-        return series_zeta(s);
-    }
+    if (real(s) >= 1.0)   // need to do something at exactly s = 1.0 + 0.0i
+        return series_zeta(s, result); // -dirichlet_zeta(s, result);  // test if they agree
 
     if (real(s) > 0.0)
-    {
-        how_calcd = 1;
-        return alternating_zeta(s);
-    }
+        return dirichlet_zeta(s, result);   // should agree with series_zeta if real(s) > 1
     
-   // cout << "Functional equation zeta(" << s << ")" << endl;
-    s1 = riemann_zeta(1.0 - s);
-    how_calcd = 2;
+    s1 = riemann_zeta(1.0 - s, result);
     return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(s) * s1;
 }
 
@@ -114,24 +112,20 @@ complex<double> riemann_zeta(complex<double> s)
 
 int main()
 {
-    //complex<double> arg(0.999, 0);
-    int w = 100;
-    int h = 100;
-    double step = 0.1;
+    double step = 0.05;
     double imin = -5.0;
     double rmin = -5.0;
+    double imax = 5.0;
+    double rmax = 5.0;
+    
+    int w = (rmax - rmin) / step;
+    int h = (imax - imin) / step;
     int m, n;
     double i, r;
     CoordSet* coords;
-
-    //cout << arg << endl;
-    //cout << "Gamma: " << cgamma(arg) << endl;
-    //cout << "Zeta terms:" << endl;
-    //cout << "Result: " << riemann_zeta(arg) << endl;
-    //return 0;
+    int result;
 
     coords = (CoordSet *)malloc(w * h * sizeof(CoordSet));
-
 
     init_visualiser("Visualiser", 800, 800);
 
@@ -141,19 +135,18 @@ int main()
         for (r = rmin, m = 0; m < w; r += step, m++)
         {
             complex<double> s(r, i);
-            complex<double> z = riemann_zeta(s);
+            complex<double> z = riemann_zeta(s, &result);
             int indx = n * w + m;
 
             coords[indx].coord[0] = real(s);
             coords[indx].coord[1] = imag(s);
             coords[indx].coord[2] = abs(z);
-            coords[indx].color = how_calcd;
+            coords[indx].color = result;
 
             // cout << "Zeta of " << s << " = " << zeta << endl;
         }
     }
 
-
-    display_visualiser(1, w, h, coords);
+    display_visualiser(0, w, h, coords);
 }
 

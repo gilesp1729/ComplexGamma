@@ -221,14 +221,11 @@ void _stdcall Draw(void)
             switch (coord_data[i].color)
             {
             case 0:
-            default:
-                glColor3d(1.0, 0.0, 0.0);
+                glColor3d(1.0, 0.0, 0.0);   // did not converge
                 break;
             case 1:
-                glColor3d(0.0, 1.0, 0.0);
-                break;
-            case 2:
-                glColor3d(0.0, 0.0, 1.0);
+            default:
+                glColor3d(0.0, 1.0, 0.0);   // converged
                 break;
             }
             glVertex3dv(coord_data[i].coord);
@@ -239,7 +236,6 @@ void _stdcall Draw(void)
     case 1: // as triangles
         glBegin(GL_TRIANGLE_STRIP);
         glColor3d(1.0, 0.0, 0.0);
-        coord_h = 10; // TEMP
         for (int j = 0; j < coord_h - 1; j++)
         {
             for (int i = 0; i < coord_w; i++)
