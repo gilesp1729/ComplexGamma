@@ -168,6 +168,19 @@ init_visualiser(const char * title, int wWidth, int wHeight)
     Position();
 }
 
+#define ABS(n) (((n) < 0) ? -(n) : (n))
+
+void color_by_steps(int steps)
+{
+    // Color by number of steps. 0-100 --> blue to green to red
+
+    double red = steps;
+    double blue = 100 - steps;
+    double green = 100 - ABS(steps - 50);
+
+    glColor3d(red / 100, green / 100, blue / 100);
+}
+
 void _stdcall Draw(void)
 {
     double axis = 100;
@@ -218,16 +231,7 @@ void _stdcall Draw(void)
         glBegin(GL_POINTS);
         for (int i = 0; i < coord_w * coord_h; i++)
         {
-            switch (coord_data[i].color)
-            {
-            case 0:
-                glColor3d(1.0, 0.0, 0.0);   // did not converge
-                break;
-            case 1:
-            default:
-                glColor3d(0.0, 1.0, 0.0);   // converged
-                break;
-            }
+            color_by_steps(coord_data[i].color);
             glVertex3dv(coord_data[i].coord);
         }
         glEnd();

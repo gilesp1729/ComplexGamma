@@ -7,6 +7,8 @@ extern "C"
 #include "visualiser.h"
 }
 
+#define STEPS 100
+
 using namespace std;
 
 static double pi = 3.14159265359; 
@@ -47,7 +49,7 @@ complex<double> series_zeta(complex<double> s, int *result)
     complex<double> zeta(0, 0);
 
    // cout << "Series zeta(" << s << ")" << endl;
-    for (int i = 1; i < 100; i++)  // limit of 100 terms, arbitrarily
+    for (int i = 1; i < STEPS; i++) 
     {
         complex<double> term = 1.0 / pow((double)i, s);
 
@@ -56,11 +58,11 @@ complex<double> series_zeta(complex<double> s, int *result)
         if (abs(term) < 1.0e-7 * abs(zeta))
         {
            // cout << "Converged in " << i << " iterations" << endl;
-            *result = 1;
+            *result = i;
             return zeta;
         }
     }
-    *result = 0;
+    *result = STEPS;
     return zeta;
 }
 
@@ -71,7 +73,7 @@ complex<double> dirichlet_zeta(complex<double> s, int* result)
     complex<double> zeta(0, 0);
 
     // cout << "Dirichlet zeta(" << s << ")" << endl;
-    for (int i = 1; i < 100; i++)  // limit of 100 terms, arbitrarily
+    for (int i = 1; i < STEPS; i++)
     {
         double di = (double)i;
         complex<double> term = (di / pow(di + 1, s)) - ((di - s) / pow(di, s));
@@ -81,11 +83,11 @@ complex<double> dirichlet_zeta(complex<double> s, int* result)
         if (abs(term) < 1.0e-7 * abs(zeta))
         {
             // cout << "Converged in " << i << " iterations" << endl;
-            *result = 1;
+            *result = i;
             return zeta / (s - 1.0);
         }
     }
-    *result = 0;
+    *result = STEPS;
     return zeta / (s - 1.0);
 }
 
@@ -93,7 +95,7 @@ complex<double> dirichlet_zeta(complex<double> s, int* result)
 // Riemann zeta function using functional equation to compute zeta for real(s) <= 0.0.
 // Note: blows up for s = 0 (since it tries to calculate series_zeta(1.0) )
 // For 0.0 < real(s) <= 1.0, we use the Dirichlet zeta function.
-// Result output: 1 if converged, 0 otherwise.
+// Result output: the number of steps required to converge to 10^-7
 complex<double> riemann_zeta(complex<double> s, int *result)
 {
     complex<double> s1;
@@ -107,8 +109,6 @@ complex<double> riemann_zeta(complex<double> s, int *result)
     s1 = riemann_zeta(1.0 - s, result);
     return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(s) * s1;
 }
-
-
 
 int main()
 {
