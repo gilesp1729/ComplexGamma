@@ -4,6 +4,7 @@
 #include "glaux/glaux.h"
 #include "Trackbal.h"
 #include "visualiser.h"
+#include <math.h>
 
 // Basic 3D visualiser. Takes all the GL gubbins out of the calling program.
 
@@ -24,6 +25,9 @@ int coord_w = 0;
 int coord_h = 0;
 CoordSet *coord_data;
 int coord_how_displayed = 0;
+
+// Callback to C++ for generating data
+AUXIDLEPROC generate_data = NULL;
 
 
 void
@@ -151,7 +155,7 @@ mouse_wheel(AUX_EVENTREC* event)
 
 
 void
-init_visualiser(const char * title, int wWidth, int wHeight)
+init_visualiser(const char * title, int wWidth, int wHeight, AUXIDLEPROC idle_func)
 {
     auxInitPosition(0, 0, wWidth, wHeight);
     auxInitDisplayMode(AUX_DEPTH16 | AUX_RGB | AUX_DOUBLE);
@@ -162,6 +166,7 @@ init_visualiser(const char * title, int wWidth, int wHeight)
     auxMouseFunc(AUX_LEFTBUTTON, AUX_MOUSEUP, trackball_MouseUp);
     auxMouseFunc(AUX_MOUSEWHEEL, AUX_MOUSEWHEEL, mouse_wheel);
     auxReshapeFunc(Reshape);
+    generate_data = idle_func;
 
     Init();
     trackball_Init(wWidth, wHeight);
@@ -170,21 +175,28 @@ init_visualiser(const char * title, int wWidth, int wHeight)
 
 #define ABS(n) (((n) < 0) ? -(n) : (n))
 
-void color_by_steps(int steps)
+void color_by_residual(double resid)
 {
-    // Color by number of steps. 0-100 --> blue to green to red
+    // Color by residual. From ~1 to 1.0e-7 --> red to green to blue
 
-    double red = steps;
-    double blue = 100 - steps;
-    double green = 100 - ABS(steps - 50);
+    double red, green, blue;
 
-    glColor3d(red / 100, green / 100, blue / 100);
+    resid = -log10(resid);
+    red = 7 - resid;
+    blue = resid;
+    green = 7 - 2 * abs(resid - 3.5);
+
+    glColor3d(red / 7, green / 7, blue / 7);
 }
 
 void _stdcall Draw(void)
 {
     double axis = 100;
     float matRot[4][4];
+
+    // Callback to gneerate data, if required
+    if (generate_data)
+        generate_data();
 
     if (zoom_delta != 0)
     {
@@ -231,7 +243,7 @@ void _stdcall Draw(void)
         glBegin(GL_POINTS);
         for (int i = 0; i < coord_w * coord_h; i++)
         {
-            color_by_steps(coord_data[i].color);
+            color_by_residual(coord_data[i].residual);
             glVertex3dv(coord_data[i].coord);
         }
         glEnd();
