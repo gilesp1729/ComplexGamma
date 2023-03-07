@@ -8,7 +8,7 @@ extern "C"
     void __stdcall generate(void);
 }
 
-#define STEPS 5
+#define STEPS 50
 
 using namespace std;
 
@@ -45,14 +45,14 @@ complex<double> cgamma(complex<double> z)
 // From here on it's all Wikipedia on the Riemann zeta function...
  
 // Series zeta function. Not valid for real(s) < 1.0 or s = 1.0.
-complex<double> series_zeta(complex<double> s, int * steps, complex<double> zeta_so_far, double* residual)
+complex<double> series_zeta(complex<double> s, int * steps, double* residual)
 {
-    complex<double> zeta = zeta_so_far;
+    complex<double> zeta(0, 0);
 
    // cout << "Series zeta(" << s << ")" << endl;
-    for (int i = 0; i < STEPS; i++) 
+    for (int i = 1; i < STEPS; i++) 
     {
-        double di = (double)i + *steps;
+        double di = (double)i;
         complex<double> term = 1.0 / pow(di, s);
 
         // cout << di << term << endl;
@@ -61,24 +61,24 @@ complex<double> series_zeta(complex<double> s, int * steps, complex<double> zeta
         if (*residual < 1.0e-7)
         {
            // cout << "Converged in " << i << " iterations" << endl;
-            *steps += i;
+            *steps = i;
             return zeta;
         }
     }
-    *steps += STEPS;
+    *steps = STEPS;
     return zeta;
 }
 
 
 // Dirichlet zeta function. Supposed to converge for real(s) > 0.
-complex<double> dirichlet_zeta(complex<double> s, int* steps, complex<double> zeta_so_far, double* residual)
+complex<double> dirichlet_zeta(complex<double> s, int* steps, double* residual)
 {
-    complex<double> zeta = zeta_so_far;
+    complex<double> zeta(0, 0);
 
     // cout << "Dirichlet zeta(" << s << ")" << endl;
     for (int i = 1; i < STEPS; i++)
     {
-        double di = (double)i + *steps;
+        double di = (double)i;
         complex<double> term = (di / pow(di + 1, s)) - ((di - s) / pow(di, s));
 
         // cout << di << term << endl;
@@ -87,11 +87,11 @@ complex<double> dirichlet_zeta(complex<double> s, int* steps, complex<double> ze
         if (*residual < 1.0e-7)
         {
             // cout << "Converged in " << i << " iterations" << endl;
-            *steps += i;
+            *steps = i;
             return zeta;
         }
     }
-    *steps += STEPS;
+    *steps = STEPS;
     return zeta;
 }
 
@@ -101,20 +101,25 @@ complex<double> dirichlet_zeta(complex<double> s, int* steps, complex<double> ze
 // For 0.0 < real(s) <= 1.0, we use the Dirichlet zeta function.
 // Also output: the number of steps required to converge to 10^-7, or STEPS if it
 // did not reach convergence. Residual is also output (as abs(term) / abs(zeta))
-complex<double> riemann_zeta(complex<double> s, int *steps, complex<double> zeta_so_far, double *residual)
+complex<double> riemann_zeta(complex<double> s, int *steps, double *residual)
 {
-    complex<double> s1;
+    complex<double> z1;
 
     if (real(s) >= 1.0)   // need to do something at exactly s = 1.0 + 0.0i
-        return series_zeta(s, steps, zeta_so_far, residual); // -dirichlet_zeta(s, result);  // test if they agree
+        return series_zeta(s, steps, residual); // -dirichlet_zeta(s, result);  // test if they agree
 
     if (real(s) > 0.0)
-        return dirichlet_zeta(s, steps, zeta_so_far, residual);   // should agree with series_zeta if real(s) > 1
+        return dirichlet_zeta(s, steps, residual);   // should agree with series_zeta if real(s) > 1
     
+    // functional equation
+    z1 = riemann_zeta(1.0 - s, steps, residual);
+    //return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(1.0 - s) * z1;
 
-    // TODO: I'm sending the wrong zeta in....
-    s1 = riemann_zeta(1.0 - s, steps, zeta_so_far, residual);
-    return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(s) * s1;
+    z1 *= pow(2.0, s);
+    z1 *= pow(pi, s - 1.0);
+    z1 *= sin(pi * s / 2.0);
+    z1 *= cgamma(1.0 - s);
+    return z1;
 }
 
 // Globals for control.
@@ -136,8 +141,8 @@ int main()
     coords = (CoordSet *)malloc(w * h * sizeof(CoordSet));
     memset(coords, 0, w * h * sizeof(CoordSet));
 
-    init_visualiser("Visualiser", 800, 800, generate);
-
+    init_visualiser("Visualiser", 800, 800, NULL);
+    generate();
     display_visualiser(0, w, h, coords);
 }
 
@@ -153,21 +158,12 @@ void __stdcall generate(void)
         {
             complex<double> s(r, i);
             int indx = n * w + m;
-            if (coords[indx].steps == 0)
-            {
-                coords[indx].steps = 1;     // start it at 1
-                coords[indx].zeta[0] = 0;
-                coords[indx].zeta[1] = 0;
-            }
 
-            complex<double> zeta(coords[indx].zeta[0], coords[indx].zeta[1]);
-            complex<double> z = riemann_zeta(s, &coords[indx].steps, zeta, &coords[indx].residual);
+            complex<double> z = riemann_zeta(s, &coords[indx].steps, &coords[indx].residual);
 
             coords[indx].coord[0] = real(s);
             coords[indx].coord[1] = imag(s);
             coords[indx].coord[2] = abs(z);
-            coords[indx].zeta[0] = real(z);
-            coords[indx].zeta[1] = imag(z);
         }
     }
 }
