@@ -113,20 +113,20 @@ complex<double> riemann_zeta(complex<double> s, int *steps, double *residual)
     
     // functional equation
     z1 = riemann_zeta(1.0 - s, steps, residual);
-    //return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(1.0 - s) * z1;
+    return pow(2.0, s) * pow(pi, s - 1.0) * sin(pi * s / 2.0) * cgamma(1.0 - s) * z1;
 
-    z1 *= pow(2.0, s);
-    z1 *= pow(pi, s - 1.0);
-    z1 *= sin(pi * s / 2.0);
-    z1 *= cgamma(1.0 - s);
-    return z1;
+   // z1 *= pow(2.0, s);
+   // z1 *= pow(pi, s - 1.0);
+   // z1 *= sin(pi * s / 2.0);
+   // z1 *= cgamma(1.0 - s);
+   // return z1;
 }
 
 // Globals for control.
-double step = 0.05;
-double imin = -5.0;
-double rmin = -5.0;
-double imax = 5.0;
+double step = 0.1;
+double imin = -10.0;
+double rmin = -30.0;
+double imax = 10.0;
 double rmax = 5.0;
 int w, h;
 CoordSet* coords;
