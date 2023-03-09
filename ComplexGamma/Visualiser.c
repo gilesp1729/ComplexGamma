@@ -184,9 +184,24 @@ void color_by_residual(double resid)
     resid = -log10(resid);
     red = 7 - resid;
     blue = resid;
-    green = 7 - 2 * abs(resid - 3.5);
+    green = 7 - 2 * fabs(resid - 3.5);
 
     glColor3d(red / 7, green / 7, blue / 7);
+}
+
+void color_by_height(double ht)
+{
+    // Color by absolute mag (height in z of display) in 0-5
+
+    double red, green, blue;
+
+    if (ht > 5.0)
+        ht = 5.0;
+    red = 5 - ht;
+    blue = ht;
+    green = 5 - 2 * fabs(ht - 2.5);
+
+    glColor3d(red / 5, green / 5, blue / 5);
 }
 
 void _stdcall Draw(void)
@@ -200,7 +215,7 @@ void _stdcall Draw(void)
 
     if (zoom_delta != 0)
     {
-        zTrans += 0.002f * half_size * zoom_delta;
+        zTrans += 0.001f * half_size * zoom_delta;
         // Don't go too far forward, or we'll hit the near clipping plane
         if (zTrans > -0.1f * half_size)
             zTrans = -0.1f * half_size;
@@ -243,7 +258,8 @@ void _stdcall Draw(void)
         glBegin(GL_POINTS);
         for (int i = 0; i < coord_w * coord_h; i++)
         {
-            color_by_residual(coord_data[i].residual);
+           // color_by_residual(coord_data[i].residual);
+            color_by_height(coord_data[i].coord[2]);
             glVertex3dv(coord_data[i].coord);
         }
         glEnd();
