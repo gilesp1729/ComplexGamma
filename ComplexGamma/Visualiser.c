@@ -204,6 +204,29 @@ void color_by_height(double ht)
     glColor3d(red / 5, green / 5, blue / 5);
 }
 
+void
+cross(double x0, double y0, double z0, double x1, double y1, double z1, double* xc, double* yc, double* zc)
+{
+    *xc = y0 * z1 - z0 * y1;
+    *yc = z0 * x1 - x0 * z1;
+    *zc = x0 * y1 - y0 * x1;
+}
+
+void normal(double p0[3], double p1[3], double p2[3])
+{
+    double A, B, C, length;
+
+   // cross(x[1] - x[0], y[1] - y[0], z[1] - z[0], x[2] - x[0], y[2] - y[0], z[2] - z[0], &A, &B, &C);
+    cross(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2], p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2], &A, &B, &C);
+    length = sqrt(A * A + B * B + C * C);
+    if (length < 1.0e-7)
+        return;
+    A /= length;
+    B /= length;
+    C /= length;
+    glNormal3d(A, B, C);
+}
+
 void _stdcall Draw(void)
 {
     double axis = 100;
@@ -266,16 +289,24 @@ void _stdcall Draw(void)
         break;
 
     case 1: // as triangles
-        glBegin(GL_TRIANGLE_STRIP);
+        glEnable(GL_LIGHTING);
+        glBegin(GL_TRIANGLES);
         glColor3d(1.0, 0.0, 0.0);
         for (int j = 0; j < coord_h - 1; j++)
         {
-            for (int i = 0; i < coord_w; i++)
+            for (int i = 0; i < coord_w - 1; i++)
             {
                 int indx = j * coord_w + i;
 
-                glVertex3dv(coord_data[indx].coord);
+                normal(coord_data[indx + coord_w].coord, coord_data[indx].coord, coord_data[indx + 1].coord);
                 glVertex3dv(coord_data[indx + coord_w].coord);
+                glVertex3dv(coord_data[indx].coord);
+                glVertex3dv(coord_data[indx + 1].coord);
+
+                normal(coord_data[indx + coord_w].coord, coord_data[indx + 1].coord, coord_data[indx + coord_w + 1].coord);
+                glVertex3dv(coord_data[indx + coord_w].coord);
+                glVertex3dv(coord_data[indx + 1].coord);
+                glVertex3dv(coord_data[indx + coord_w + 1].coord);
             }
         }
 

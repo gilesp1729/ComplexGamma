@@ -119,7 +119,7 @@ complex<double> riemann_zeta(complex<double> s, int *steps, double *residual)
 // Globals for control.
 double step = 0.1;
 double imin = -15.0;
-double rmin = -30.0;
+double rmin = -15.0;
 double imax = 15.0;
 double rmax = 5.0;
 int w, h;
@@ -137,7 +137,7 @@ int main()
 
     init_visualiser("Visualiser", 800, 800, NULL);
     generate();
-    display_visualiser(0, w, h, coords);
+    display_visualiser(1, w, h, coords);
 }
 
 void __stdcall generate(void)
