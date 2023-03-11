@@ -19,6 +19,8 @@ float yTrans = 0;
 float zTrans = -2.0f * INITIAL_HALFSIZE;
 int zoom_delta = 0;
 float half_size = INITIAL_HALFSIZE;
+int	right_mouseX, right_mouseY;
+BOOL	right_mouse = FALSE;
 
 // Stuff to be displayed
 int coord_w = 0;
@@ -153,6 +155,21 @@ mouse_wheel(AUX_EVENTREC* event)
     zoom_delta = event->data[AUX_MOUSESTATUS];
 }
 
+void CALLBACK
+right_down(AUX_EVENTREC* event)
+{
+    SetCapture(auxGetHWND());
+    right_mouseX = event->data[AUX_MOUSEX];
+    right_mouseY = event->data[AUX_MOUSEY];
+    right_mouse = TRUE;
+}
+
+void CALLBACK
+right_up(AUX_EVENTREC* event)
+{
+    ReleaseCapture();
+    right_mouse = FALSE;
+}
 
 void
 init_visualiser(const char * title, int wWidth, int wHeight, AUXIDLEPROC idle_func)
@@ -164,6 +181,8 @@ init_visualiser(const char * title, int wWidth, int wHeight, AUXIDLEPROC idle_fu
 
     auxMouseFunc(AUX_LEFTBUTTON, AUX_MOUSEDOWN, trackball_MouseDown);
     auxMouseFunc(AUX_LEFTBUTTON, AUX_MOUSEUP, trackball_MouseUp);
+    auxMouseFunc(AUX_RIGHTBUTTON, AUX_MOUSEDOWN, right_down);
+    auxMouseFunc(AUX_RIGHTBUTTON, AUX_MOUSEUP, right_up);
     auxMouseFunc(AUX_MOUSEWHEEL, AUX_MOUSEWHEEL, mouse_wheel);
     auxReshapeFunc(Reshape);
     generate_data = idle_func;
@@ -236,6 +255,38 @@ void _stdcall Draw(void)
     if (generate_data)
         generate_data();
 
+    // handle panning with right mouse drag. 
+    if (right_mouse)
+    {
+        POINT pt;
+
+        auxGetMouseLoc(&pt.x, &pt.y);
+        if (pt.y != right_mouseY)
+        {
+            GLint viewport[4], width, height;
+
+            glGetIntegerv(GL_VIEWPORT, viewport);
+            width = viewport[2];
+            height = viewport[3];
+            if (width > height)
+            {
+                // Y window coords need inverting for GL
+                xTrans += 2 * zTrans * (float)(right_mouseX - pt.x) / height;
+                yTrans += 2 * zTrans * (float)(pt.y - right_mouseY) / height;
+            }
+            else
+            {
+                xTrans += 2 * zTrans * (float)(right_mouseX - pt.x) / width;
+                yTrans += 2 * zTrans * (float)(pt.y - right_mouseY) / width;
+            }
+
+            Position();
+            right_mouseX = pt.x;
+            right_mouseY = pt.y;
+        }
+    }
+
+    // handle zooming
     if (zoom_delta != 0)
     {
         zTrans += 0.001f * half_size * zoom_delta;
