@@ -26,7 +26,9 @@ BOOL	right_mouse = FALSE;
 int coord_w = 0;
 int coord_h = 0;
 CoordSet *coord_data;
+CoordSet *coord_data;
 int coord_how_displayed = 0;
+double z_cutoff = 20.0;
 
 // Callback to C++ for generating data
 AUXIDLEPROC generate_data = NULL;
@@ -69,7 +71,7 @@ Init(void)
     wglUseFontOutlines(auxGetHDC(), 0, 256, 2000, 0, 0, WGL_FONT_POLYGONS, NULL);
 #endif
 
-    glEnable(GL_CULL_FACE);    // don't show back facing faces
+    //glEnable(GL_CULL_FACE);    // don't show back facing faces
 }
 
 // Set up frustum and possibly picking matrix. If picking, pass the centre of the
@@ -204,12 +206,12 @@ void color(double r, double g, double b, BOOL lighting)
         col[0] = r * ambient[0] * 2.0f;
         col[1] = g * ambient[1] * 2.0f;
         col[2] = b * ambient[2] * 2.0f;
-        glMaterialfv(GL_FRONT, GL_AMBIENT, col);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, col);
 
         col[0] = r * diffuse[0] * 2.0f;
         col[1] = g * diffuse[1] * 2.0f;
         col[2] = b * diffuse[2] * 2.0f;
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, col);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, col);
 
       //  glMaterialf(GL_FRONT, GL_SHININESS, materials[mat].shiny);
     }
@@ -259,19 +261,28 @@ cross(double x0, double y0, double z0, double x1, double y1, double z1, double* 
     *zc = x0 * y1 - y0 * x1;
 }
 
-void normal(double p0[3], double p1[3], double p2[3])
+// Set normal fom triangle. Return FALSE if any points are not valid or too high.
+BOOL normal(double p0[3], double p1[3], double p2[3])
 {
     double A, B, C, length;
 
-   // cross(x[1] - x[0], y[1] - y[0], z[1] - z[0], x[2] - x[0], y[2] - y[0], z[2] - z[0], &A, &B, &C);
+    if (isnan(p0[2]) || p0[2] > z_cutoff)
+        return FALSE;
+    if (isnan(p1[2]) || p1[2] > z_cutoff)
+        return FALSE;
+    if (isnan(p2[2]) || p2[2] > z_cutoff)
+        return FALSE;
+
     cross(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2], p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2], &A, &B, &C);
     length = sqrt(A * A + B * B + C * C);
     if (length < 1.0e-7)
-        return;
+        return FALSE;
+
     A /= length;
     B /= length;
     C /= length;
     glNormal3d(A, B, C);
+    return TRUE;
 }
 
 void _stdcall Draw(void)
@@ -380,15 +391,18 @@ void _stdcall Draw(void)
                 // color_by_residual(coord_data[indx].residual, TRUE);
                 color_by_height(coord_data[indx].coord[2], TRUE);
 
-                normal(coord_data[indx + coord_w].coord, coord_data[indx].coord, coord_data[indx + 1].coord);
-                glVertex3dv(coord_data[indx + coord_w].coord);
-                glVertex3dv(coord_data[indx].coord);
-                glVertex3dv(coord_data[indx + 1].coord);
-
-                normal(coord_data[indx + coord_w].coord, coord_data[indx + 1].coord, coord_data[indx + coord_w + 1].coord);
-                glVertex3dv(coord_data[indx + coord_w].coord);
-                glVertex3dv(coord_data[indx + 1].coord);
-                glVertex3dv(coord_data[indx + coord_w + 1].coord);
+                if (normal(coord_data[indx + coord_w].coord, coord_data[indx].coord, coord_data[indx + 1].coord))
+                {
+                    glVertex3dv(coord_data[indx + coord_w].coord);
+                    glVertex3dv(coord_data[indx].coord);
+                    glVertex3dv(coord_data[indx + 1].coord);
+                }
+                if (normal(coord_data[indx + coord_w].coord, coord_data[indx + 1].coord, coord_data[indx + coord_w + 1].coord))
+                {
+                    glVertex3dv(coord_data[indx + coord_w].coord);
+                    glVertex3dv(coord_data[indx + 1].coord);
+                    glVertex3dv(coord_data[indx + coord_w + 1].coord);
+                }
             }
         }
 
