@@ -31,17 +31,15 @@ int coord_how_displayed = 0;
 // Callback to C++ for generating data
 AUXIDLEPROC generate_data = NULL;
 
+static float ambient[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+static float diffuse[] = { 0.5f, 1.0f, 1.0f, 1.0f };
+static float position[] = { 90.0f, 90.0f, 150.0f, 0.0f };
+static float lmodel_ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+static float lmodel_twoside[] = { GL_TRUE };
 
 void
 Init(void)
 {
-    static GLint colorIndexes[3] = { 0, 200, 255 };
-    static float ambient[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-    static float diffuse[] = { 0.5f, 1.0f, 1.0f, 1.0f };
-    static float position[] = { 90.0f, 90.0f, 150.0f, 0.0f };
-    static float lmodel_ambient[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    static float lmodel_twoside[] = { GL_TRUE };
-    // HFONT hFont;
 
     glClearColor(1.0, 1.0, 1.0, 1.0);
 
@@ -192,9 +190,38 @@ init_visualiser(const char * title, int wWidth, int wHeight, AUXIDLEPROC idle_fu
     Position();
 }
 
+// Color to GL. Also optionally set material colors for lighting.
+// rgb in [0, 1.0]
+void color(double r, double g, double b, BOOL lighting)
+{
+    if (lighting)
+    {
+        float col[4];
+
+        col[3] = 1.0f;
+
+        // Multiply material color by amb/diff separately
+        col[0] = r * ambient[0] * 2.0f;
+        col[1] = g * ambient[1] * 2.0f;
+        col[2] = b * ambient[2] * 2.0f;
+        glMaterialfv(GL_FRONT, GL_AMBIENT, col);
+
+        col[0] = r * diffuse[0] * 2.0f;
+        col[1] = g * diffuse[1] * 2.0f;
+        col[2] = b * diffuse[2] * 2.0f;
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, col);
+
+      //  glMaterialf(GL_FRONT, GL_SHININESS, materials[mat].shiny);
+    }
+    else
+    {
+        glColor3d(r, g, b);
+    }
+}
+
 #define ABS(n) (((n) < 0) ? -(n) : (n))
 
-void color_by_residual(double resid)
+void color_by_residual(double resid, BOOL lighting)
 {
     // Color by residual. From ~1 to 1.0e-7 --> red to green to blue
 
@@ -205,22 +232,23 @@ void color_by_residual(double resid)
     blue = resid;
     green = 7 - 2 * fabs(resid - 3.5);
 
-    glColor3d(red / 7, green / 7, blue / 7);
+    color(red / 7, green / 7, blue / 7, lighting);
 }
 
-void color_by_height(double ht)
+void color_by_height(double ht, BOOL lighting)
 {
     // Color by absolute mag (height in z of display) in 0-5
 
     double red, green, blue;
 
+    // TODO go to black when near zero
     if (ht > 5.0)
         ht = 5.0;
     red = 5 - ht;
     blue = ht;
     green = 5 - 2 * fabs(ht - 2.5);
 
-    glColor3d(red / 5, green / 5, blue / 5);
+    color(red / 5, green / 5, blue / 5, lighting);
 }
 
 void
@@ -332,8 +360,8 @@ void _stdcall Draw(void)
         glBegin(GL_POINTS);
         for (int i = 0; i < coord_w * coord_h; i++)
         {
-           // color_by_residual(coord_data[i].residual);
-            color_by_height(coord_data[i].coord[2]);
+           // color_by_residual(coord_data[i].residual, FALSE);
+            color_by_height(coord_data[i].coord[2], FALSE);
             glVertex3dv(coord_data[i].coord);
         }
         glEnd();
@@ -348,6 +376,9 @@ void _stdcall Draw(void)
             for (int i = 0; i < coord_w - 1; i++)
             {
                 int indx = j * coord_w + i;
+
+                // color_by_residual(coord_data[indx].residual, TRUE);
+                color_by_height(coord_data[indx].coord[2], TRUE);
 
                 normal(coord_data[indx + coord_w].coord, coord_data[indx].coord, coord_data[indx + 1].coord);
                 glVertex3dv(coord_data[indx + coord_w].coord);
