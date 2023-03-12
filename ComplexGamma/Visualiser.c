@@ -287,7 +287,14 @@ BOOL normal(double p0[3], double p1[3], double p2[3])
 
 void _stdcall Draw(void)
 {
-    double axis = 100;
+    double axis = 50;
+    double xmin = -50;
+    double ymin = -50;
+    double xmax = 50;
+    double ymax = 50;
+    double xinc = 1;
+    double yinc = 1;
+    double x, y;
     float matRot[4][4];
 
     // Callback to gneerate data, if required
@@ -345,6 +352,29 @@ void _stdcall Draw(void)
     glLoadIdentity();
     trackball_CalcRotMatrix(matRot);
     glMultMatrixf(&(matRot[0][0]));
+
+    // Draw grid
+    glBegin(GL_LINE_LOOP);
+    glColor3d(0.8, 0.8, 0.8);
+    glVertex3d(xmin, ymin, 0.0);
+    glVertex3d(xmin, ymax, 0.0);
+    glVertex3d(xmax, ymax, 0.0);
+    glVertex3d(xmax, ymin, 0.0);
+    glEnd();
+
+    glBegin(GL_LINES);
+    glColor3d(0.8, 0.8, 0.8);
+    for (x = xmin + xinc; x < xmax - 0.001; x += xinc)
+    {
+        glVertex3d(x, ymin, 0.0);
+        glVertex3d(x, ymax, 0.0);
+    }
+    for (y = ymin + yinc; y < ymax - 0.001; y += yinc)
+    {
+        glVertex3d(xmin, y, 0.0);
+        glVertex3d(xmax, y, 0.0);
+    }
+    glEnd();
 
     // Draw axes
     glBegin(GL_LINES);
